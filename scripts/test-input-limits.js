@@ -60,6 +60,11 @@ async function main() {
   console.log('\nTermPals — Test: límites de longitud en /tp bug y /tp suggest');
   console.log('─'.repeat(52));
 
+  // RUN_TAG: 13 dígitos de timestamp, único por ejecución.
+  // Se embebe en mensajeExacto para identificar los registros de esta run
+  // sin depender del cleanup (el anon key no puede DELETE feedback por RLS).
+  const RUN_TAG = String(Date.now());
+
   // ── Crear usuario de prueba ───────────────────────────────────────────────
   process.stdout.write('  creando usuario de prueba... ');
   const { data: usuario, error: errU } = await supabase
@@ -97,8 +102,9 @@ async function main() {
   }
 
   // ── Test 3: mensaje de exactamente 500 chars aceptado ────────────────────
+  // mensajeExacto embebe RUN_TAG al final: 487 x's + 13 dígitos = 500 chars.
   console.log('\n  Test 3 — mensaje de exactamente 500 chars aceptado:');
-  const mensajeExacto = 'x'.repeat(500);
+  const mensajeExacto = 'x'.repeat(MAX_CHARS - RUN_TAG.length) + RUN_TAG;
   const resultadoExacto = validarMensaje(mensajeExacto);
   if (resultadoExacto === 'ok') {
     pass(`500 chars → validación OK`);
@@ -130,25 +136,27 @@ async function main() {
     fail(`validación de 1 char falló: "${resultadoMinimo}"`);
   }
 
-  // ── Test 6: confirmar que solo los registros válidos existen en DB ────────
-  console.log('\n  Test 6 — solo registros válidos (500 y 1 char) en la DB:');
-  const { data: rows, error: errQ } = await supabase
+  // ── Test 6: confirmar que los registros persisten en DB ──────────────────
+  // Busca por contenido exacto de mensajeExacto (único por run via RUN_TAG),
+  // sin depender de creado_en ni de cleanup previo.
+  console.log('\n  Test 6 — registros de esta ejecución persisten en la DB:');
+  const { data: rows500, error: err500 } = await supabase
     .from('feedback')
     .select('mensaje')
     .eq('usuario_id', usuario.id)
-    .order('creado_en');
+    .eq('mensaje', mensajeExacto);
+  const { data: rows1, error: err1 } = await supabase
+    .from('feedback')
+    .select('mensaje')
+    .eq('usuario_id', usuario.id)
+    .eq('mensaje', mensajeMinimo);
 
-  if (errQ) {
-    fail(`error al consultar: ${errQ.message}`);
-  } else if (rows.length === 2) {
-    const [r1, r2] = rows;
-    if (r1.mensaje.length === 500 && r2.mensaje.length === 1) {
-      pass(`2 registros en DB: longitudes ${r1.mensaje.length} y ${r2.mensaje.length} chars`);
-    } else {
-      fail(`longitudes inesperadas: ${r1.mensaje.length} y ${r2.mensaje.length}`);
-    }
+  if (err500 || err1) {
+    fail(`error al consultar: ${(err500 || err1).message}`);
+  } else if ((rows500?.length ?? 0) >= 1 && (rows1?.length ?? 0) >= 1) {
+    pass(`2 registros en DB: longitudes ${rows500[0].mensaje.length} y ${rows1[0].mensaje.length} chars`);
   } else {
-    fail(`esperaba 2 registros, encontró ${rows.length}`);
+    fail(`registros no encontrados (500chars: ${rows500?.length ?? 0}, 1char: ${rows1?.length ?? 0})`);
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────

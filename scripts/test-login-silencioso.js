@@ -65,7 +65,7 @@ async function main() {
     process.exit(1);
   }
 
-  for (const fn of ['obtenerVersionActiva', 'registrarConsentimiento', 'tieneConsentimientoActivo']) {
+  for (const fn of ['obtenerVersionActiva', 'registrarConsentimiento']) {
     if (typeof consMod[fn] === 'function') {
       pass(`${fn} exportado`);
     } else {

@@ -49,21 +49,18 @@ async function main() {
   console.log('\nTermPals — Test: logout limpia estado de sesión');
   console.log('─'.repeat(52));
 
-  // ── Cleanup inicial ───────────────────────────────────────────────────────
-  await supabase.from('conversaciones').delete().like('motivo_cierre', 'test-logout%');
-  await supabase.from('usuarios').delete().like('github_id', 'test-logout-%');
-
-  // ── Test 1: crear usuario de prueba ──────────────────────────────────────
+  // ── Test 1: upsert usuario de prueba (tolerante a ejecuciones previas) ───
   console.log('\n  Test 1 — crear usuario de prueba:');
   const { data: usuario, error: errU } = await supabase
     .from('usuarios')
-    .insert({
-      github_id:      GH_ID,
-      github_login:   'logout-testuser',
-      nombre_usuario: 'logout-testuser',
-      estatus:        true,
-      searches_hoy:   0,
-    })
+    .upsert({
+      github_id:               GH_ID,
+      github_login:            'logout-testuser',
+      nombre_usuario:          'logout-testuser',
+      estatus:                 true,
+      searches_hoy:            0,
+      conversacion_activa_id:  null,  // empezar con estado limpio
+    }, { onConflict: 'github_id' })
     .select('id, github_login')
     .single();
   if (errU) { console.log(`  ERROR: ${errU.message}`); process.exit(1); }

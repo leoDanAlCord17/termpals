@@ -14,6 +14,10 @@
     "type": "git",
     "url": "https://github.com/leoDanAlCord17/termpals.git"
   },
+  "bugs": {
+    "url": "https://github.com/leoDanAlCord17/termpals/issues"
+  },
+  "homepage": "https://github.com/leoDanAlCord17/termpals#readme",
   "categories": [
     "Other"
   ],
@@ -68,9 +72,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "dev": "npm run compile -- --watch",
+    "compile": "tsc -p ./ && node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
@@ -82,6 +85,7 @@
     "@types/vscode": "^1.80.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "esbuild": "^0.28.1",
     "eslint": "^8.57.0",
     "typescript": "^5.4.0"
   }

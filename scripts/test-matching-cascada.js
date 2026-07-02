@@ -61,7 +61,6 @@ async function crearUsuario(tag, busca) {
       estatus:                true,
       busca,
       conversacion_activa_id: null,
-      disponible:             true,
       searches_hoy:           0,
       ultima_busqueda_en:     null,
     }, { onConflict: 'github_id' })
